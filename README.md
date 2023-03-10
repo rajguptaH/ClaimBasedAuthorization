@@ -1,64 +1,46 @@
-# Role Based Authorization in asp dot net core Mvc
+# Claim Based Authorization in asp dot net core Mvc
 - You Have To Tell In The Startup You Are going to use authentication write below code in start.cs and this says you are adding the authentication service in your application using a cookies
 ```c#
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie();
 ```
-- after that you have to tell the application to add authentication and authorization
+### Now You have To Add Policy in Startup
+```c#
+builder.Services.AddAuthorization(options =>
+{
+    //Claim is required for this policy is UserId if any user have Claim Named UserId and Value 1,2,3,4,5 then this will work otherwise this will not give you the access 
+    options.AddPolicy("SuperUser", policy => policy.RequireClaim("UserId", "1", "2", "3", "4", "5"));
+});
+```
+### Then you have add Singleton
+```c#
+builder.Services.AddSingleton<IAuthorizationHandler, SalaryHandler>();
+```
+### after that you have to tell the application to add authentication and authorization
 ```c#
 app.UseAuthentication();
 app.UseAuthorization();
 ```
-- After that you have to create a simple AccountController With Login Get Post Methods and Logout Method With Simple View Then You Have To Add a attribute Called [AllowAnonymous] This will keep this method accessable for anyone without login see below 
+
+### And Then You Have to authenticate user like this
 ```c#
-[AllowAnonymous]
-[HttpGet]
-public IActionResult Login()
-{
-    return View();
-}
-```
-- And Put a [Authorize] attribute where you want only authorization person can use this method
-```c#
-[Authorize]
-public IActionResult Index()
-{
-   return View();
-}
-```
-- Then You Have Login Users Using based on their credentials and after that you have use a method SignInAsyncs Login User With given identity claim and roles after that you can compare roles of user when you are authorizing method or controllers like see next point 
-```c#
-[HttpPost]
-public IActionResult Login(string username,string password)
-  {
-            if(username=="admin" && password == "dotnet")
+if (username == "admin" && password == "dotnet")
             {
-                var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "Admin"), new        
-                Claim(ClaimTypes.Role, "SU") }, CookieAuthenticationDefaults.AuthenticationScheme);
+            //if i change the UserId to 6 it cann't access Privacy method Because we have registerd A Policy With a claim named UserId in Program/startup.cs
+                var identity = new ClaimsIdentity(new[] { new Claim("UserId", "1") }, CookieAuthenticationDefaults.AuthenticationScheme);
                 var principle = new ClaimsPrincipal(identity);
                 var login = HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principle);
                 return RedirectToAction("Index", "Home");
             }
-            
-            if(username=="user" && password == "user")
-            {
-                var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "user") },   
-                CookieAuthenticationDefaults.AuthenticationScheme);
-                var principle = new ClaimsPrincipal(identity);
-                var login = HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principle);
-                return RedirectToAction("Index", "Home");
-            }
-            return View();
-  }
 ```
-- now you have to use role base authorization for a method or a controller so you can simply provide a parameter called role to the Authorize attribute Like this [Authorize(Role = "Admin")]
+### now you have to use Policy base authorization for a method or a controller so you can simply provide a parameter called Policy to the Authorize attribute Like this [Authorize(Policy = "SuperUser")]
 ```c#
-[Authorize(Roles ="Admin")] 
+[Authorize(Policy = "SuperUser")]
 public IActionResult Privacy()
 {
   return View();
 }
 ```
-- Now This Method Will only accessible to The User Whose Role is Admin That It 
+- Now This Method Will only accessible to The User Whose Have Policy With Requirment Matchs That It 
 ## Thanks
 - Visit To The Repository Where Role Based Authorization Has been implemented 
-- [RoleBaseAuthorization](https://github.com/rajguptaH/RoleBaseAuthorizationAspCore)
+- [ClaimBasedAuthorization](https://github.com/rajguptaH/ClaimBasedAuthorization)
